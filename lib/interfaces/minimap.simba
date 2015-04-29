@@ -1,0 +1,229 @@
+(*
+  File name: mainscreen.simba
+  Description: Contains functions that have to do with minimap stuff
+  Authors: Officer Barbrady
+*)
+
+var minimap:TRSMinimap;
+
+
+(*
+  Author: Officer Barbrady
+  Description: Gets health text from minimap
+*)
+
+function TRSMinimap.getHealth():integer;
+begin
+  try
+    result := StrToInt(getSimpleText([65280, 501500, 65535, 855541], 721, 84, 737, 96, 'statchars07'));
+  except
+    result := -1;
+  end;
+end;
+
+(*
+  Author: Officer Barbrady
+  Description: Gets prayer text from minimap
+*)
+
+function TRSMinimap.getPrayer():integer;
+begin
+  try
+    result := StrToInt(getSimpleText([65280, 501500, 65535, 855541], 736, 123, 751, 135, 'statchars07'));
+  except
+    result := -1;
+  end;
+end;
+
+(*
+  Author: Officer Barbrady
+  Description: Gets run text from minimap
+*)
+
+function TRSMinimap.getRun():integer;
+begin
+  try
+    result := StrToInt(getSimpleText([65280, 501500, 65535, 855541], 734, 161, 753, 174, 'statchars07'));
+  except
+    result := -1;
+  end;
+end;
+
+(*
+  by Narcle & Flight
+  Description:Gets the compass angle in radians
+*)
+function TRSMinimap.getCompassRadians(): Extended;
+var
+  TPA: TPointArray;
+  T: TPoint;
+  b:Tbox;
+begin
+  b := intToBox(521, 2, 563, 46);
+  with b do
+    FindColorsSpiralTolerance(T.x, T.y, TPA, 1911089, x1, y1, x2, y2, 0);
+  if Length(TPA) < 1 then
+   Exit;
+  T := MiddleTPA(TPA);
+  Result := ArcTan2(-(T.Y - 24), T.X - 543) + Radians(90);
+  Result := fixRad(Result - Pi);
+end;
+
+(*
+  by Wizzup?
+  Description: Gets the compass angle in radians
+*)
+
+function TRSMinimap.GetCompassAngleDegrees(): Extended;
+begin
+  Result := Degrees(self.getCompassRadians());
+end;
+
+(*
+  Author: Officer Barbrady
+  Description: Returns true if run is on
+*)
+
+function TRSMinimap.runOn():boolean;
+var
+  x, y:integer;
+begin
+  result := findColorTolerance(x, y, 514811, 710, 157, 727, 172, 5);
+end;
+
+(*
+  Author: Officer Barbrady
+  Description: Returns true if run is off
+*)
+
+function TRSMinimap.runOff():boolean;
+begin
+  result := not self.runOn();
+end;
+
+(*
+  Author: Officer Barbrady
+  Description: Turns runon or off
+*)
+
+procedure TRSMinimap.setRun(turnOn:boolean);
+begin
+  if turnOn then
+  begin
+    if self.runOff() then
+      mouse(720, 165);
+  end else
+    if self.runOn() then
+      mouse(720, 165);
+end;
+
+(*
+  Author: Officer Barbrady
+  Description: Turns run on or off given the run is above a certain level
+*)
+
+procedure TRSMinimap.setRun(turnOn:boolean;energy:integer) overload;
+begin
+  if (self.getRun() >= energy) then
+    self.setRun(turnOn);
+end;
+
+procedure TRSMinimap.rest(restUntil:integer);
+var
+  t:integer;
+begin
+  AloticInterface.close();
+  if (self.getRun() >= restUntil) or (restUntil > 100) then
+    exit()
+  else begin
+    mouse(719, 164, 0, 0, mouse_right);
+    if waitOption('est', 1200) then
+    begin
+      markTime(t);
+      while (timeFromMark(t) < 30000) and (self.getRun() < restUntil) do
+        wait(random(1000));
+    end;
+  end;
+end;
+
+function TPoint.toMainscreen():TPoint;
+begin
+  result.x := Round((self.x-627)*259/23) + 269;
+  result.y := Round((self.y-129)*168/25) + 157;
+  if result.x < 3 then result.x := 3;
+  if result.y < 3 then result.y := 3;
+  if result.x > 516 then result.x := 516;
+  if result.y > 393 then result.y := 393;
+end;
+
+(*
+  Author: Nava2, Rasta Magicion
+  Description: Gets the dots on the minimap
+*)
+
+function TRSMinimap.getDots(WhatDot: String; x1, y1, x2, y2: Integer): TPointArray;
+var
+  I, Dif, Radius, Hi, C: Integer;
+  TPA: TPointArray;
+begin
+  case LowerCase(WhatDot) of
+    'npc', 'n', 'yellow', 'y': Dif := 4369;
+    'item', 'i', 'red', 'r': Dif := 29;
+    'player', 'p', 'white', 'w': Dif := 1907997;
+    'friend', 'f', 'green', 'g': Dif := 5376;
+    'team', 't', 'blue', 'b', 'cape': Dif := 2171941;
+    {'clan', 'c', 'orange', 'o': Dif := -1;}
+  else
+   writeln('');// srl_Warn('GetMiniMapDotsIn', '"' + WhatDot + '" is not a valid dot type', warn_AllVersions);
+  end;
+  Freeze;
+  Radius := Max((x2-x1)div 2, (y2-y1)div 2);
+ // FindColorsPie(TPA, 65536, 0, 0, 360, 0, radius, x1, y1, x2, y2, (x1+x2)div 2, (y1+y2)div 2);
+  Hi := High(TPA);
+  SetLength(Result, Hi + 1);
+  if (Hi < 0)then
+  begin
+    UnFreeze;
+    Exit;
+  end;
+  C := 0;
+  for I := 0 to Hi do
+  begin
+    if (GetColor(TPA[I].X-1, TPA[I].Y-1) - GetColor(TPA[I].X, TPA[I].Y-1) = Dif) then
+    begin
+      Result[C] := Point(TPA[I].x, TPA[i].y - 2);
+      Inc(C);
+    end;
+  end;
+  Unfreeze;
+  SetLength(Result, C);
+end;
+
+function flagPresent:boolean;
+var
+  flagDTM, x, y:integer;
+begin
+  flagDTM := DTMFromString('mQwAAAHicY2ZgYChiYmAoBuJ8IPYA8l0ZIPR/JCyAhBmRMBAAAOTzBWM=');
+  result := FindDTM(flagDTM, x, y, minimap.bounds.x1, minimap.bounds.y1, minimap.bounds.x2, minimap.bounds.y2);
+  freeDTM(flagDTM);
+end;
+
+procedure waitFlagPresent(time:integer);
+begin
+  waitFunc(@flagPresent(), 50, time);
+end;
+
+function flagGone():boolean;
+begin
+  result := not flagPresent();
+end;
+
+procedure flag(time:integer);
+begin
+  waitFunc(@flagGone, 50, 6000);
+end;
+
+procedure flag(); overload;
+begin
+  flag(4000);
+end;

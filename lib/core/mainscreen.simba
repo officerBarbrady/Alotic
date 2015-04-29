@@ -1,0 +1,133 @@
+(*
+  File name: mainscreen.simba
+  Description: Contains functions that are called within simba, and extra overloaded
+  functions
+  Authors: Officer Barbrady
+*)
+
+{$include_once Alotic/lib/utilities/timing.simba}
+{$include_once Alotic/lib/core/text.Simba}
+
+var
+  mainscreen:TRSMainScreen;
+
+(*
+  Author: Officer Barbrady
+  Description: Sets up the mainscreen coordinates
+*)
+
+procedure TRSMainScreen.setup();
+begin
+  self.center := point(264, 225);
+  self.bounds := intToBox(4, 56, 516, 391);
+end;
+
+(*
+  Author: Officer Barbrady
+  Description: Finds object on the mainscreen, uses multiple colors for objects
+  that can be different colors.
+*)
+
+function TRSObject.findObjectPoints():TPointArray;
+var
+  mtpas, matpa:t2dpointarray;
+  mtpa:tpointarray;
+  i, x, y, cts:integer;
+  bx:tbox;
+  dx, dy, dx2, dy2:integer;
+begin {
+  //cts := GetColorToleranceSpeed();
+  ColorToleranceSpeed(2);
+  setLength(mtpas, length(self.colors));
+  for i := 0 to high(self.colors) do
+  begin
+    SetColorSpeed2Modifiers(self.hues[i], self.sats[i]);findColorsTolerance(mtpas[i], self.colors[i], mainscreen.bounds, self.tols[i]);
+  end;
+  ColorToleranceSpeed(cts);
+  SetColorSpeed2Modifiers(0.02, 0.02);
+  if (length(mtpas) > 1) then
+    mtpa := mergeAtpa(matpa)
+  else
+    mtpa := mtpas[0];
+  if (length(mtpa) > 0) then
+  begin
+    matpa := clustertpa(mtpa, 5);
+    filtertpasbetween(matpa, 0, self.minLength);
+    SortATPAFromFirstpoint(matpa, mainscreen.center);
+    setLength(result, length(matpa));
+    for i := 0 to high(matpa) do
+      result[i] := matpa[i].getMiddle();
+  end;  }
+end;
+
+function TRSObject.findClosest():TPoint;
+var
+  tpa:TpointArray;
+begin
+  tpa := self.findObjectPoints();
+  if (length(tpa) > 0) then
+    result := tpa[0];
+end;
+
+function TRSObject.find():boolean;
+var
+  tpa:TPointArray;
+  i:integer;
+begin
+  tpa := self.findObjectPoints();
+  for i := 0 to high(tpa) do
+  begin
+    if self.useUptext then
+      if (waitUpTextMulti(self.uptext, 250)) then
+        continue
+      else
+        writeln('Uptext ' , uptext, ' not found');
+      if self.rightClick then
+      begin
+        tpa[i].click(mouse_right);
+        if waitOptionMulti(self.options, 1200) then
+          exit(true);
+      end else
+      begin
+        tpa[i].click();
+        exit(true);
+      end;
+   end;
+end;
+
+procedure TRSObject.new(cols, toles:TIntegerArray;huess, satss:TExtendedArray;rightClick2,useUptext2:boolean;uptext2,options2:TStringArray;filter2:integer);
+begin
+  self.colors := cols;
+  self.tols := toles;
+  self.hues := huess;
+  self.sats := satss;
+  self.rightClick := rightClick2;
+  self.useUptext := useUptext2;
+  self.options := options2;
+  self.uptext := uptext2;
+  self.minLength := filter2;
+end;
+
+(*
+  Authors: Officer Barbrady
+  Description: Gets all overhead chat text
+*)
+
+function TRSMainScreen.getOverHeadChatText:TStringArray;
+var
+  mainscreenTextTPA:TPointArray;
+  mainscreenTextATPA, textATPA:T2DPointArray;
+  i:integer;
+begin
+  findColors(mainscreenTextTPA, 65535, self.bounds);
+  if (length(mainscreenTextTPA) < 1) then
+    exit();
+  mainscreenTextATPA := clusterTPA(mainscreenTextTPA, 7);
+  setLength(result, length(mainscreenTextATPA));
+  for i := 0 to high(mainscreenTextATPA) do
+  begin
+    textATPA := splitTPAEx(mainscreenTextATPA[i], 1, 10);
+    sortATPAFromFirstPointX(textATPA, point(0, 0));
+    result[i] := getTextATPA(textATPA, 5, 'upchars07');
+  end;
+end;

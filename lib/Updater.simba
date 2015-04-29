@@ -1,0 +1,212 @@
+{$loadlib prosocks}
+
+
+(*
+  Alotic include updater written by rj,
+  string functions by Janilabo, github page grabber by Brandon
+*)
+
+const
+  BASE_URL = 'https://raw.githubusercontent.com/officerBarbrady/Alotic/master/';
+  INCLUDE_PATH = 'C:\Simba\Includes\Alotic\';
+
+type
+  TFileFormat = (FILE_PATH, WEB_PATH, DIRECTORY_PATH);
+
+function mInc(var x: Integer; N: Integer = 1): Integer;
+begin
+  Result := x;
+  x := (x + N);
+end;
+
+function mIncrease(var x: Integer; N: Integer = 1): Integer;
+begin
+  x := (x + N);
+  Result := x;
+end;
+
+function mExplode(str: string; d: Char): TStringArray;
+var
+  a, b, l, p, r, s: Integer;
+begin
+  l := Length(str);
+  SetLength(Result, 1);
+  if (l > 0) then
+  begin
+    b := 1;
+    a := 1;
+    p := 0;
+    r := 0;
+    s := 0;
+    while (mInc(p) < l) do
+      if (str[p] = d) then
+      begin
+        Result[mInc(r)] := Copy(str, a, s);
+        if (b <= r) then
+          SetLength(Result, mIncrease(b, b));
+        a := (p + 1);
+        s := 0;
+      end else
+        s := (s + 1);
+    SetLength(Result, (r + 1));
+    Result[r] := Copy(str, a, s);
+  end else
+    Result[0] := str;
+end;
+
+function mLines(str: string): TStringArray;
+begin
+  if (Length(str) = 0) then
+  begin
+    SetLength(Result, 1);
+    Result[0] := str;
+  end else
+    Result := mExplode(str, #10);
+end;
+
+function Before(s, str: string): string;
+var
+  p: Integer;
+begin
+  if (Length(s) < Length(str)) then
+  begin
+    p := Pos(s, str);
+    if (p > 1) then
+      Result := Copy(str, 1, (p - 1))
+    else
+      Result := '';
+  end else
+    Result := '';
+end;
+
+function lastBefore(s, str: string): string;
+var
+  l, p, lp: Integer;
+begin
+  l := Length(str);
+  if (Length(s) <= l) then
+  begin
+    repeat
+      p := PosEx(s, str, (p + 1));
+      if (p > 0) then
+        lp := p;
+    until (p <= 0);
+    if (lp > 0) then
+      Result := Copy(str, 1, (lp - 1))
+    else
+      Result := '';
+  end else
+    Result := '';
+end;
+
+function formatPath(s:string;formatType:TFileFormat):string;
+var
+  base, fileType:string;
+begin
+  case formatType of
+    FILE_PATH:
+    begin
+      fileType := between('[', ']', s);
+      base := before('[', s);
+      result := INCLUDE_PATH + base + '.' + fileType;
+    end;
+    WEB_PATH:
+    begin
+      s := replace(s, '\', '/', [rfReplaceall]);
+      fileType := between('[', ']', s);
+      base := before('[', s);
+      result := base + '.' + fileType;
+    end;
+    DIRECTORY_PATH:
+    begin
+      result := INCLUDE_PATH + lastBefore('\', s);
+      if (result[length(result)] <> '\') then
+        result := result + '\';
+    end;
+  end;
+end;
+
+Function GetPageEx(URL: String): String;
+var
+  S: SSLSocket;
+  res: ProMemoryStruct;
+begin
+  Pro_InitSocket(S, nil, nil, nil, nil);
+  Pro_CreateSocket(S, '');
+  Pro_SetSSL(S, false, false, true);
+  Pro_SetURL(S, URL);
+  Pro_DoGetEx(S, res);
+
+  {$IFDEF LAPE}
+  SetLength(Result, res.size);
+  MemMove(res.memory^, Result[1], res.size);
+  {$ELSE}
+  Result := res.memory;
+  {$ENDIF}
+  try
+    Pro_FreeSocket(S);
+  except
+    WriteLn('Unable to Free ' + URL + ' ProSocks Error');
+  end;
+end;
+
+procedure updateInclude();
+var
+  i, c, tmpFile:integer;
+  p:string;
+  filePaths:TStringArray;
+  fileContents:string;
+begin
+  writeln('Scanning for files to update..');
+  p := getPageEx(BASE_URL + 'Files.txt');
+  filePaths := mLines(p);
+  for i := 0 to high(filePaths) do
+  begin
+    if (filePaths[i] <> '') then
+    begin
+      if (formatPath(filePaths[i], DIRECTORY_PATH) <> '') then
+      begin
+        if (not directoryExists(formatPath(filePaths[i], DIRECTORY_PATH))) then
+        begin
+          Writeln('Created new forder ', formatPath(filePaths[i], DIRECTORY_PATH));
+          createDirectory(formatPath(filePaths[i], DIRECTORY_PATH));
+        end;
+      end;
+      p := '';
+      p := getPageEx(BASE_URL + formatPath(filePaths[i], WEB_PATH));
+      try
+        if (not fileExists(formatPath(filePaths[i], FILE_PATH))) then
+        begin
+          tmpFile := createFile(formatPath(filePaths[i], FILE_PATH));
+          closeFile(tmpFile);
+          tmpFile := reWriteFile(formatPath(filePaths[i], FILE_PATH), false);
+          if writeFileString(tmpFile, p) then
+          begin
+            writeln('Created new file ' , formatPath(filePaths[i], FILE_PATH));
+            c := c + 1;
+          end;
+          closeFile(tmpFile);
+        end else
+        begin
+          tmpFile := openFile(formatPath(filePaths[i], FILE_PATH), false);
+          readFileString(tmpFile, fileContents, fileSize(tmpFile));
+          closeFile(tmpFile);
+          if (length(fileContents) <> length(p)) then
+          begin
+            tmpFile := reWriteFile(formatPath(filePaths[i], FILE_PATH), false);
+            if writeFileString(tmpFile, p) then
+            begin
+              c := c + 1;
+              writeln('Updated ', formatPath(filePaths[i], FILE_PATH));
+            end;
+            closeFile(tmpFile);
+          end;
+        end;
+      except
+        writeln('Could not write file');
+      end;
+    end;
+  end;
+  writeln('Updated ' , c , ' Files');
+end;
+

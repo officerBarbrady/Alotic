@@ -1,0 +1,18 @@
+// draws on top of the alotic screen
+
+procedure enableCanvas();
+begin
+  canvasLayer.init(getNativeWindow(), canvas);
+end;
+
+procedure disableCanvas()
+begin
+  enableDrawing := false;
+  canvasLayer.close();
+end;
+
+procedure freeCanvas();
+begin
+  //canvasLayer.close();
+  canvasLayer.free();
+end;

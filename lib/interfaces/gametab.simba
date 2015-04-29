@@ -1,0 +1,275 @@
+{$include_once Alotic/lib/core/text.simba}
+(*
+  File name: gametab.simba
+  Description: Contains functions related to gametab
+  Authors: Officer Barbrady
+*)
+
+(*
+  Author: Officer Barbrady
+  Description: Gets current gametab
+*)
+
+var
+  gameTab:TRSGameTab;
+
+function TRSGameTab.getCurrentTab():integer;
+var
+  i, k, x, y, o, p, count:integer;
+begin
+  x := 544;
+  y := 216;
+  for k := 1 to 2 do
+    for i := 1 to 8 do
+    begin
+      count := count + 1;
+      if (countColorTolerance(7005436,
+      x + ((i-1) * 26) -15,
+      y + ((k-1) * 300) - 15,
+      x + ((i-1) * 26) + 15,
+      y + ((k-1) * 300) + 15,
+      27) >= 7) then
+        exit(count);
+    end;
+end;
+
+function TRSGameTab.getCurrentTabString():string;
+begin
+  case self.getCurrentTab of
+    TAB_COMBAT       : result := 'TAB_COMBAT';
+    TAB_ALOTIC       : result := 'TAB_ALOTIC ';
+    TAB_STATS        : result := 'TAB_STATS';
+    TAB_ACHIEVEMENTS : result := 'TAB_ACHIEVEMENTS';
+    TAB_INV          : result := 'TAB_INV ';
+    TAB_EQUIP        : result := 'TAB_EQUIP ';
+    TAB_PRAYER       : result := 'TAB_PRAYER';
+    TAB_MAGIC        : result := 'TAB_MAGIC';
+    TAB_NOTHING      : result := 'TAB_NOTHING';
+    TAB_FRIENDS      : result := 'TAB_FRIENDS';
+    TAB_CLAN         : result := 'TAB_CLAN';
+    TAB_CLAN_MISC    : result := 'TAB_CLAN_MISC';
+    TAB_TOOLS        : result := 'TAB_TOOLS';
+    TAB_EMOTE        : result := 'TAB_EMOTE';
+    TAB_MUSIC        : result := 'TAB_MUSIC';
+    else
+      result := 'NULL';
+  end;
+end;
+
+(*
+  Author: Officer Barbrady
+  Description: Returns true if a tab is open
+*)
+
+function TRSGameTab.isOpen(const tab:integer):boolean;
+begin
+  result := (self.getCurrentTab() = tab);
+end;
+
+(*
+  Author: Officer Barbrady
+  Description: Opens a gametab
+*)
+
+procedure TRSGameTab.openTab(tab:integer);
+var
+  y:integer;
+begin
+  //if (not LoggedIn) then
+   // exit();
+  if (tab > 16) or (tab < 1) then
+  begin
+    debugBox.addLine('[ERROR] Tab out of bounds!', 255);
+    exit;
+  end;
+  y := 216;
+  if (self.isOpen(tab)) then
+    exit
+  else
+    if (tab >8) then
+    begin
+      y := y + 300;
+      tab := tab - 8;
+    end;
+    mouse(544 + (tab - 1) * 30, y);
+end;
+
+(*
+  Author: Officer Barbrady
+  Description: Gets name of a freind off freinds list
+*)
+
+function TRSGameTab.getFriendName(const index:integer):string
+begin
+  self.openTab(TAB_FRIENDS);
+  result := getSimpleText([16777215], 556, 289 + (index * 15), 650, 299 + (index * 15), 'smallchars07');
+end;
+
+(*
+  Author: Officer Barbrady
+  Description: Gets name of all visible freinds
+*)
+
+function TRSGameTab.getFriendNames():TStringArray;
+var
+  i:integer;
+begin
+  for i := 0 to 11 do
+  begin
+    setLength(result, length(result) + 1);
+    result[i] := getFriendName(i);
+    if (result[i] = '') then
+    begin
+      setLength(result, length(result) - 1);
+      exit;
+    end;
+  end;
+end;
+
+(*
+  Author: Officer Barbrady
+  Description: Gets the name of the wielded weapon
+*)
+
+function TRSGameTab.getWeaponName():string;
+begin
+  self.openTab(TAB_COMBAT);
+  result := getSimpleText([2070783], 614, 240, 682, 257, 'charsNPC');
+end;
+
+(*
+  Author: Officer Barbrady
+  Description: Gets the total level
+*)
+
+function TRSGameTab.getTotalLevel():integer;
+begin
+  self.openTab(TAB_STATS);
+  try
+    result := StrToInt(getSimpleText([65535], 702, 465, 744, 497, 'bigchars'));
+  except
+    result := 0;
+  end;
+end;
+
+(*
+  Author: Officer Barbrady
+  Description: Closes interface
+*)
+
+function TRSGameTab.getSpellBookBounds():TBox;
+var
+  w, h:integer;
+  interfaceTPA:TPointarray;
+  interfaceATPA:T2DPointArray;
+begin
+  self.openTab(TAB_MAGIC);
+  getClientDimensions(w, h);
+  findColorsTolerance(interfaceTPA, 3358020, 0, 0, w - 1, h - 40, 14);
+  interfaceATPA := clusterTPA(interfaceTPA, 1);
+  filterTPAsBetween(interfaceATPA, 0, 2500);
+  if (length(interfaceATPA) = 1) then
+    result := getTPABoundS(interfaceATPA[0]);
+end;
+
+(*
+  Author: Officer Barbrady
+  Description: Gets name of spell
+*)
+
+function TRSGameTab.getSpellName():string;
+var
+  b:TBox;
+begin
+  b := getSpellBookBounds();
+  result := getSimpleText([42495], b.x1, b.y1, b.x2, b.y2, 'smallchars07');
+end;
+
+function TRSGameTab.getAttackMode():integer;
+var
+  i, k, c, x, y:integer;
+begin
+  result := -1;
+  self.openTab(TAB_COMBAT);
+  for i := 0 to 1 do
+    for k := 0 to 1 do
+      if (countColorTolerance(1974405,
+      569 + (i * 82), 305 + (k * 54),
+      634 + (i * 82), 348 + (k * 54),
+      13) > 200) then
+        exit(c)
+      else
+        c := c + 1;
+end;
+
+function TRSGameTab.getAttackModeName(const index:integer):string;overload;
+var
+  i, k, c:integer;
+  tpa:TPointArray;
+  atpa:T2DPointArray;
+  b:Tbox;begin
+  if (index > 3) then exit;
+  self.openTab(TAB_COMBAT);
+  for i := 0 to 1 do
+    for k := 0 to 1 do
+      if (c = index) then
+        exit(getSimpleText([2070783],
+          569 + (i * 82), 305 + (k * 54),
+          634 + (i * 82), 348 + (k * 54),
+          'statchars07'))
+      else
+        c := c + 1;
+end;
+
+function TRSGameTab.getAttackModeString():string;
+var
+  mode:integer;
+begin
+  mode := getAttackMode();
+  if (mode <> -1) then
+    result := getAttackModeName(mode);
+end;
+
+procedure TRSGameTab.switchStyle(const style:integer);
+var
+  i, k, c:integer;
+begin
+  if (style > 3) or (getAttackMode = style) then
+    exit;
+  self.openTab(TAB_COMBAT);
+  for i := 0 to 1 do
+    for k := 0 to 1 do
+      if (c = style) then
+      begin
+        mouse(569 + (i * 82) + 25, 305 + (k * 54) + 25);
+        exit;
+      end else
+        c := c + 1;
+end;
+
+procedure TRSGameTab.switchStyle(const style:string); overload;
+var
+  i:integer;
+begin
+  for i := 0 to 3 do
+    if (lowercase(getAttackModeName(i)) = lowercase(style)) then
+    begin
+      switchStyle(i);
+      exit;
+    end;
+end;
+
+function TRSGameTab.getCombatLevelString():string;
+begin
+  self.openTab(TAB_COMBAT);
+  result := getSimpleText([2070783], 664, 283, 680, 295, 'statchars07');
+end;
+
+function TRSGameTab.getCombatLevel():integer;
+begin
+  try
+    result := StrToInt(getCombatLevelString);
+  except
+    result := 3;
+  end;
+end;

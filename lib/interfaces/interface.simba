@@ -1,0 +1,97 @@
+(*
+  File name: interface.simba
+  Description: Contains functions for interfaces
+  Authors: Officer Barbrady
+*)
+
+var
+  AloticInterface:TRSInterface;
+
+procedure TRSInterface.init(n:string;b:Tbox;s:boolean);
+begin
+  self.name := n;
+  self.bounds := b;
+  self.static := s;
+end;
+
+(*
+  Author: Officer Barbrady
+  Description: Gets interface TPA
+*)
+
+function TRSInterface.getInterfaceTPA():TPointArray;
+begin
+  findColorsTolerance(result, 2830905, mainscreen.bounds, 3);
+end;
+
+(*
+  Author: Officer Barbrady
+  Description: Gets open interface bounds
+*)
+
+function TRSInterface.getBounds():TBox;
+begin
+  result := self.getInterfaceTPA().getBounds();
+end;
+
+(*
+  Author: Officer Barbrady
+  Description: Returns true if interface is open
+*)
+
+function TRSInterface.Open():boolean;
+begin
+  result := (length(self.getInterfaceTPA()) > 1000);
+end;
+
+function TRSInterface.getOpen():TRSInterface;
+begin
+end;
+
+(*
+  Author: Officer Barbrady
+  Description: Gets name of interface
+*)
+
+function TRSInterface.getName():string;
+var
+  b:TBox;
+begin
+  if(not self.open()) then
+    exit;
+  b := self.getBounds();
+  b.y2 := b.y1 + 40;
+  result := getSimpleText([2070783, 37375, 65535], b.x1, b.y1, b.x2, b.y2, 'upchars07');
+end;
+
+(*
+  Author: Officer Barbrady
+  Description: Gets interface description
+*)
+
+function TRSInterface.getDescription():string;
+var
+  b:TBox;
+begin
+  if (not self.open()) then
+    exit;
+  b := self.getBounds();
+  b.y1 := b.y1 + 80;
+  result := getSimpleText([2070783], b.x1, b.y1, b.x2, b.y2, 'smallchars07');
+end;
+
+(*
+  Author: Officer Barbrady
+  Description: Closes interface
+*)
+
+procedure TRSInterface.close();
+var
+  b:TBox;
+  text:string;
+begin
+  if (not self.open()) then
+    exit;
+  b := self.getBounds();
+  mouse(b.x2 - 15, b.y1 + 30);
+end;

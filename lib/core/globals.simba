@@ -1,0 +1,122 @@
+(*
+  File name: globals.simba
+  Description: Contains globals for the include
+  Authors: rj
+*)
+{$loadlib libMufasaLayer}
+
+
+const
+  mouse_move = 3;
+  VK_ENTER = {$IFDEF LINUX}10{$ELSE}VK_RETURN{$ENDIF};
+  TAB_COMBAT = 1;
+  TAB_ALOTIC = 2;
+  TAB_STATS = 3;
+  TAB_ACHIEVEMENTS = 4;
+  TAB_INV = 5;
+  TAB_EQUIP = 6;
+  TAB_PRAYER = 7;
+  TAB_MAGIC = 8;
+  TAB_NOTHING = 9;
+  TAB_FRIENDS = 10;
+  TAB_CLAN = 11;
+  TAB_CLAN_MISC = 12;
+  TAB_TOOLS = 13;
+  TAB_EMOTE = 14;
+  TAB_MUSIC = 15;
+
+var
+  clWhite   = 16777215;
+  clBlack   = 0;
+  clRed     = 255;
+  clGreen   = 32768;
+  clBlue    = 16711680;
+  clPurple  = 8388736;
+  clYellow  = 65535;
+  clAqua    = 16776960;
+  clOrange  = 26367;
+  clFuchsia = 16711935;
+  clTeal    = 8421376;
+  clNavy    = 8388608;
+  clGray    = 8421504;
+  clLime    = 65280;
+  clMaroon  = 128;
+  clSilver  = 12632256;
+  clPink    = 11772650;
+
+type
+
+  TGameTabs = (COMBAT, STATS, QUEST, INV, EQUIP, PRAYER, MAGIC,
+  SUMMONING, FREINDS, IGNORE, CLAN, TOOLS, EMOTE, MUSIC);
+
+  fnct_actionOptions = (ClickRight,ClickLeft, ClickMiddle, Move, Nothing);
+
+  TDebugCanvas = record
+    messages:TStringArray;
+    messageColor:TIntegerArray;
+    bmp, backDrop:integer;
+  end;
+
+  TOptions = record
+    Str: string;
+    Bounds, BigBox: TBox;
+  end;
+
+  chatOption = record
+    text: string;
+    bounds: TBox;
+  end;
+
+  TRSInterface = record
+    static:boolean;
+    name:string;
+    bounds:Tbox;
+  end;
+
+  TRSObject = record
+    colors, tols:TIntegerArray;
+    hues, sats:TExtendedArray;
+    rightClick, useUptext:boolean;
+    options,uptext:TStringArray;
+    minLength:integer;
+  end;
+
+  TRSInventory =  record(TRSInterface)
+    slots:TBoxArray;
+  end;
+
+  TRSChatBox = record(TRSInterface)
+    chatOptions:array of chatOption;
+  end;
+
+  TVar = record
+    name:string;
+    value:variant;
+  end;
+
+  TVarArray = array of TVar;
+
+  TPlayer = record
+    user, pass, pin:string;
+    vars:TVarArray;
+  end;
+
+  TRSBank = TRSInterface;
+  TRSGameTab = TRSInterface;
+
+  TRSMainScreen = record(TRSInterface)
+    center:TPoint;
+  end;
+
+  TRSMinimap = TRSInterface;
+
+var
+  debugBox:TDebugCanvas;
+  mouseSpeed, currentPlayer, x, y:Integer;
+  right:Integer = 0;
+  left:Integer = 1;
+  stopReason:string = 'User terminated';
+  players:array of TPlayer;
+  canvas:TMufasaBitmap;
+  canvasLayer:TMufasaLayer;
+  enableDrawing, enableLog:boolean = true;

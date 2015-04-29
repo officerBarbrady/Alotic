@@ -1,0 +1,135 @@
+{$include_once Utilities/wrappers.simba}
+{$include_once core/globals.simba}
+{$include_once interfaces/inventory.simba}
+{$include_once player/login.simba}
+{$include_once core/math.simba}
+{$include_once core/mouse.simba}
+{$include_once core/text.simba}
+{$include_once utilities/timing.simba}
+{$include_once utilities/debugBox.simba}
+{$include_once core/mainscreen.simba}
+{$include_once interfaces/bank.simba}
+{$include_once interfaces/chatbox.simba}
+{$include_once interfaces/minimap.simba}
+{$include_once interfaces/gametab.simba}
+{$include_once interfaces/interface.simba}
+
+{$include_once misc/datatypes/types.simba}
+{$include_once utilities/color.simba}
+
+
+{$include_once player/varManager.simba}
+{$include_once player/player.simba}
+
+
+{$include_once Utilities/canvas.simba}
+{$include_once Utilities/drawing.simba}
+{$include_once Utilities/file.simba}
+
+
+{$include_once updater.simba}
+
+
+const
+  curbuild = 10;
+
+
+function getLatest():integer;
+begin
+  try
+    result := StrToInt(between('erbuild = ', ';', GetPageEx('https://raw.githubusercontent.com/officerBarbrady/Alotic/master/lib/Alotic.simba'));
+  except
+    result := -1;
+  end;
+end;
+
+procedure checkUpdate();
+var
+  t, lat:integer;
+begin
+  lat := getLatest();
+  if (lat = -1) then
+  begin
+    writeln('Update server offline terminating update procedure');
+    exit();
+  end else
+  begin
+    if (lat > curbuild) then
+    begin
+      t := getSystemTime();
+      writeln('Updating Include...');
+      writeln('Current: ' , curbuild , ' latest: ' , lat);
+      updateInclude();
+      writeln('Updated include in  ' , msToTime((GetSystemTime - t), 2));
+      writeln('Please restart the script!');
+      terminateScript();
+    end;
+  end;
+end;
+
+function ActivateAlotic():boolean;
+var
+  processes: TSysProcArr;
+  i: integer;
+begin
+  result := false;
+  processes := GetProcesses();
+  for i := 0 to high(processes) do
+    if (processes[i].title = ('Alotic')) and (processes[i].width = 765) and (processes[i].height = 503) then
+    begin
+      debugBox.addLine('Target set to: ' + toStr(processes[i]), 0);
+      setTarget(processes[i]);
+      ActivateClient();
+      exit(true);
+    end;
+end;
+
+procedure freeAloticMem;
+begin
+  debugBox.addLine('Freed all objects from memory', 32768);
+end;
+
+procedure endScript();
+begin
+  debugBox.addLine('Script stopped', 255);
+  terminateScript();
+end;
+
+procedure SetUpAlotic(update:boolean = true);
+var
+  t:integer;
+begin
+  if update then
+    checkUpdate();
+  if (not ActivateAlotic()) then
+  begin
+    debugBox.addLine('ERROR: Cannot find Alotic Client', 255);
+    terminateScript();
+  end;
+  t := getSystemTime();
+  if (enableLog) then
+  begin
+    debugBox.init(16777215);
+    debugBox.refresh();
+  end;
+  mouseSpeed := 25;
+  bankScreen.init('Bank of Alotic', IntToBox(26, 56, 511, 361), true);
+  chatBox.init('Chatbox', intToBox(9, 370, 525, 510), false);
+  inventory.init('Inventory', intToBox(573, 241, 735, 494), false);
+  initInv(); // fix later
+  gameTab.init('Gametab', intToBox(0, 0, 0, 0), true);
+  minimap.init('Minimap', intToBox(558,38, 712, 193), false);
+  mainscreen.init('Mainscreen', intToBox(11, 33, 524, 370), false);
+  mainscreen.center := Point(266, 203);
+  debugBox.addLine('Loaded 6 interfaces', 0);
+  addOnTerminate('freeAloticMem');
+  addOnTerminate('endScript');
+  addOnTerminate('freeCanvas');
+  if enableDrawing then
+  begin
+    debugBox.addLine('Drawing enabled', 0);
+    enableCanvas();
+  end else
+    debugBox.addLine('Drawing disabled', 0);
+  debugBox.addLine('Alotic include compiled in ' + toStr(getSystemTime - t) +  ' ms',32768);
+end;

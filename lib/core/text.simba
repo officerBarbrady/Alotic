@@ -1,0 +1,478 @@
+(*
+  File name: Simba.simba
+  Description: Contains functions that are called within simba, and extra overloaded
+  functions
+  Authors: Officer Barbrady
+*)
+{$include_once soulsplit/misc/datatypes/string.simba}
+//{$I Soulsplit/misc/Simba.Simba}
+//{$I Soulsplit/misc/datatypes/string.Simba}
+//{$I Soulsplit/core/mainscreen.Simba}
+
+(*
+  Author: Officer Barbrady
+  Description: Checks if strings of one array of string is in another
+  array of string
+*)
+
+function isText(Text, theText: TStringArray): Boolean;
+var
+  i,k: Integer;
+begin
+  for i := 0 to High(Text) do
+    for k := 0 to high(theText) do
+      if (Pos(Text[i], TheText[k]) > 0) then
+        exit(true);
+end;
+
+(*
+  Author: Officer Barbrady
+  Description: Checks of XP bar is open
+*)
+
+function ss_xpBarOpen():boolean;
+begin
+  result := (countColorTolerance(3885388, 410, 110, 508, 123, 5) >= 100) and (countColorTolerance(16777215, 410, 110, 508, 123, 5) >= 70);
+end;
+
+(*
+  Author: Officer Barbrady
+  Description: Gets XP bar TPA
+*)
+
+function ss_getXpBarTPA():TPointArray;
+begin
+  if not ss_xpBarOpen then
+    mouse(534, 117);
+  findColors(result, 16777215, 400, 107, 508, 123);
+end;
+
+(*
+  Author: Officer Barbrady
+  Description: Gets XP bar total(string)
+*)
+
+function ss_getXpBarTotalString():string;
+var
+  textTPA:TPointArray;
+  textATPA:T2DPointArray;
+begin
+  textTPA := ss_getXpBarTPA();
+  textATPA := splittpaex(textTPA, 1, 10);
+  filtertpasbetween(textatpa, 0, 1);
+  SortATPAFromFirstPointX(textATPA, Point(0, 0));
+  result := getTextATPA(textatpa, 3, 'smallchars07');
+  result := replace(result, '''', ',', [rfReplaceAll]);
+  result := replace(result, 'Total:', '', [rfReplaceAll]);
+  result := replace(result, ' ', '', [rfReplaceAll]);
+end;
+
+(*
+  Author: Officer Barbrady
+  Description: Gets XP bar total(integer)
+*)
+
+function ss_getXPBarTotal():integer;
+var
+  barString:string;
+begin
+  barString := ss_getXPBarTotalString();
+  barString := replace(barString, ',', '', [rfReplaceAll]);
+  try
+    result := StrToInt(barString);
+  except
+    result := -1;
+  end;
+end;
+
+(*
+  Author: Officer Barbrady
+  Description: Gets item amount within a box
+*)
+
+function TBox.getAmount():integer;
+var
+  Colors:TIntegerArray;
+  textTPA:TPointArray;
+  textATPA, textATPAS:T2DPointArray;
+  i:integer;
+  textStr:string;
+begin
+  Colors := [65535, 16777215, 8453888];
+  setLength(textATPAS, length(colors));
+  for i := 0 to high(colors) do
+    findColors(textATPAS[i], Colors[i], self);
+  textTPA := mergeATPA(textATPAS);
+  textATPA := SplitTPAEx(textTPA, 1, 10);
+  filtertpasbetween(textatpa, 0, 1);
+  SortATPAFromFirstPointX(textATPA, Point(0, 0));
+  textStr := getTextATPA(textATPA, 3, 'statchars07');
+  try
+    if textStr.contains('M') then
+      result := (StrToInt(textStr.removeEnd) * 1000000)
+    else if textStr.contains('K') then
+      result := (StrToInt(textStr.removeEnd) * 1000)
+    else
+      result := StrToInt(textStr);
+  except
+  end;
+end;
+
+(*
+  Author: Officer Barbrady
+  Description: Gets text within x coords
+*)
+
+function getSimpleText(Colors:TIntegerArray;x1, y1, x2, y2:integer;font:string):String;
+var
+  textTPA:TPointArray;
+  textATPA, textATPAS:T2DPointArray;
+  i:integer;
+  textStr:string;
+begin
+  setLength(textATPAS, length(colors));
+  for i := 0 to high(colors) do
+    findColors(textATPAS[i], Colors[i], x1, y1, x2, y2);
+  textTPA := mergeATPA(textATPAS);
+  textATPA := SplitTPAEx(textTPA, 1, 10);
+  filtertpasbetween(textatpa, 0, 1);
+  SortATPAFromFirstPointX(textATPA, Point(0, 0));
+  result := getTextATPA(textATPA, 3, font);
+end;
+
+(*
+  Author: Officer Barbrady
+  Description: Returns uptext on Soulsplit
+*)function getUptext():string;
+var
+  texttpas, textatpa:t2dpointarray;
+  texttpa:tpointarray;
+  textcolors:tintegerarray;
+  i:integer;
+begin
+  textcolors := [16777215, 16776960, 65535, 65280, 4231423, 28927, 12543, 255];
+  setLength(textTPAS, length(textColors));
+  for i := 0 to high(textcolors) do
+    findColors(texttpas[i], textcolors[i], 8, 61, 325, 85);
+  texttpa := mergeAtpa(texttpas);
+  textatpa := splittpaex(texttpa, 1, 10);
+  SortATPAFromFirstPointX(textatpa, Point(0, 0));
+  result := getTextATPA(textatpa, 3, 'upchars07');
+end;
+
+function DebugTPA(Points: TPointArray; BmpName: string): Boolean;
+var
+  Bmp: integer;
+  Box : TBox;
+  TempTPA : TPointArray;
+begin
+  Box := GetTPABounds(Points);
+  Bmp := BitmapFromClient(Box.x1,Box.y1,Box.x2,Box.y2);
+  TempTPA := CopyTPA(Points);
+  OffsetTPA(TempTPA,Point(-box.x1,-box.y1));
+  DrawTPABitmap(Bmp,TempTPA,clRed);
+  DisplayDebugImgWindow(box.x2-Box.x1 + 1, box.y2-box.y1 + 1);
+  DrawBitmapDebugImg(Bmp);
+  if bmpname <> '' then
+    SaveBitmap(Bmp, ScriptPath + BmpName +'.bmp');
+  FreeBitmap(Bmp);
+  Result := True;
+end;
+function DebugATPA(aPoints: T2DPointArray; BmpName: string): Boolean;
+var
+   Width, Height, ClientBMP: Integer;
+   ATPA : T2DPointArray;
+   Box : TBox;
+begin
+  result := false;
+  if length(aPoints) = 0 then
+    exit;
+  Box := GetATPABounds(aPoints);
+  Width := box.x2 - box.x1 + 1;
+  Height := box.y2 - box.y1 + 1;
+  DisplayDebugImgWindow(Width, Height);
+  ClientBMP := BitmapFromClient(box.x1,box.y1,box.x2,box.y2);
+  ATPA := CopyATPA(aPoints);
+  OffsetATPA(ATPA,point(-box.x1,-box.y1));
+  DrawATPABitmap(ClientBMP,ATPA);
+  DrawBitmapDebugImg(ClientBMP);
+  if BmpName <> '' then
+    SaveBitmap(ClientBMP, ScriptPath + BmpName + '.bmp');
+  FreeBitmap(ClientBMP);
+  Result := True;
+end;
+
+(*
+  Authors: Wizzup? & Narcle & Robert
+  Description: Gets action options
+*)
+
+function getOptions(): Array of TOptions;
+var
+   B, BB: TBox;
+   TPA, restpa, blacktpa, newtpa, merged: TPointArray;
+   ATPA, boxatpa, tempatpa, blackatpa, newatpa: T2DPointArray;
+   I, L, target, bmp,w,h:Integer;
+   BoxColors: TIntegerArray;
+begin
+  target := GetImageTarget;
+  GetClientDimensions(B.X2, B.Y2);
+  B := IntToBox(0, 0, B.X2-1, B.Y2-1);
+  //grey
+  BoxColors := [1779242];
+  setLength(boxatpa, length(boxColors));
+  //setColorToleranceSpeed(1);
+  // find the option menu color
+  //for i := 0 to high(boxcolors) do
+    FindColorsTolerance(tpa, boxcolors[0], b, 2);
+
+  //tpa := mergeATPA(boxatpa);
+ // writeln(length(tpa));
+  //debugtpa(tpa, 'bmp');
+  // if too small
+  If Length(tpa) < 100 Then
+    exit;
+  //form an atpa of the found menu
+  atpa := clusterTpa(tpa, 3);
+  filtertpasbetween(atpa, 0, 50);
+ // debugatpa(atpa, 'bmp');
+  // find the correct one that has the text
+  for i := 0 to High(ATPA) do
+  begin
+    B := GetTPABounds(ATPA[i]);
+    if ((B.x2-B.x1) > 95) and ((B.y2-B.y1) > 18) then
+      Break
+    else
+      B := IntToBox(0, 0, 0, 0);
+  end;
+  If (B.x2 = 0) then
+    exit;
+  findColors(blacktpa, 0, b);
+  if (length(blacktpa) < 0) then
+    exit;
+  tpa := mergeatpa([blacktpa, tpa]);
+ // debugtpa(tpa, 'bmp');
+
+  // get the points that are not the menu color (the text)
+  ReturnPointsNotInTPAWrap(tpa, b, resTPA);
+  //debugtpa(restpa, 'bmp');
+  bmp := CreateBitmap(b.X2-B.X1+2, b.Y2-b.Y1+2);
+  OffsetTPA(restpa, Point(-B.X1, -B.Y1));
+  FastDrawClear(bmp, 0);
+  // draw red in the text
+  DrawTPABitmap(bmp, restpa, clRed);//Text
+  GetbitmapSize(bmp, w, h);
+  settargetbitmap(bmp);
+  SetLength(newatpa, H div 15);
+  // find the red in the bitmap
+  for i := 0 to High(newatpa) do
+    FindColorsTolerance(newatpa[i], 255, 0, 0+i*16,  W-1, 14+i*16, 0);
+ // debugatpa(newatpa, 'bmp');
+  L := High(newatpa);
+  SortATPAFromFirstPointY(newatpa, Point(w div 2,0));
+  SetArrayLength(Result, Length(newatpa));
+  Result[0].BigBox := b;
+  for i := 0 to high(newatpa) do
+  begin
+    TPA := newatpa[i];
+    tempatpa := SplitTPAEx(TPA, 1, 10); // Split one into characters
+    SortATPAFromFirstPointX(tempatpa, Point(0, 0));
+    //pass to ocr
+    Result[i].Str := GetTextATPA(tempatpa, 4, 'UpChars07'); //Writeln(Result[i].Str);
+    BB := GetTPABounds(newatpa[i]);
+
+    Result[i].Bounds := IntToBox(BB.X1+B.X1, BB.Y1+B.Y1, BB.X2+B.X1, BB.Y2+B.Y1);
+    setlength(tempatpa,0);
+    setlength(TPA,0);end;
+  SetImageTarget(target);
+  FreeBitmap(bmp);
+end;
+
+(*
+  Authors: Wizzup? & Nava2 & N1ke!
+  Description: Function that chooses option
+*)
+
+function chooseOptionMulti(Texts: TStringArray; TextType: String; Action: fnct_ActionOptions): Boolean;
+var
+   B: TBox;
+   i, H, x, R: Integer;
+   T: TPoint;
+   Options: array of TOptions;
+begin
+  Result:= False;
+  Options := getOptions();
+  if (Length(Options) < 1) then
+    Exit;
+  H := High(Options);
+  for i := 0 To H do
+  begin
+    if ArrInStr(Texts, Options[i].Str) then
+    begin
+      Result := True;
+      B := Options[i].Bounds;
+      GetMousePos(T.x, T.y);
+
+      R:= Min(((B.X2 - B.X1) shr 1), 5);
+      case Action of
+        ClickLeft:
+          if PointInBox(T, B) then
+            ClickMouse2(left)
+          else
+            MouseBoxEx(B.x1 + R, B.Y1, B.x2 - R, B.Y1 + 5, R, mouse_Left);Move:
+          if not PointInBox(T, B) then
+            MouseBoxEx(B.x1 + R, B.Y1, B.x2 - R, B.Y1 + 5, R, mouse_move);
+
+        Nothing:
+          begin
+          end;
+
+        else
+          writeLn('ChooseOptionMultiEx ', ' ClickRight not a valid click for RS menus!');
+      end;
+      Exit;
+    end;
+  end;
+  B := Options[0].BigBox;
+  if Action <> Nothing then
+  begin
+    x := Max(B.X1 - 52, 0);
+    if x = 0 then
+      x := B.X2+10;
+    MMouse(x, Max(B.Y1 - 50, 0), 40, B.Y2-B.Y1);
+    Wait(200 + Random(100));
+  end;
+end;(*
+  Authors: Wizzup? & N1ke!
+  Description: Chooses option (accepts array of string)
+*)
+
+function chooseOptionMulti(Txt: TStringArray): Boolean; overload;
+begin
+  Result := chooseOptionMulti(Txt, 'All', ClickLeft);
+end;
+
+(*
+  Authors: Wizzup?
+  Description: Chooses option
+*)
+
+function chooseOption(Txt, TextType: string): Boolean;
+begin
+  Result := chooseOptionMulti([Txt], TextType, ClickLeft);
+end;
+
+(*
+  Authors: Wizzup?
+  Description: Chooses option
+*)
+
+function chooseOption(Txt: String): Boolean; overload;
+begin
+  Result := chooseOptionMulti([Txt], 'All', ClickLeft);
+end;
+
+(*
+  Authors: Mutant Squirrle
+  Description:Types a key
+*)
+
+procedure TypeByte(k: Byte);
+begin
+  {$IFDEF SMART}
+  If (K = 13) then
+    K:= 10;
+  {$ENDIF}
+  KeyDown(k);
+  Wait(10 + Random(50));
+  KeyUp(k);
+end;
+
+(*
+  Authors: SKy Scripter
+  Description: Sends the keys
+*)
+
+procedure TypeSend(Text: string; PressEnter: Boolean);
+var
+  I: Integer;
+begin
+
+  for i := 1 to Length(Text) do
+    sendKeys(text[i], random(30), random(30));
+
+  if (PressEnter) then
+    TypeByte(VK_ENTER);
+end;
+
+(*
+  Authors: SKy Scripter
+  Description: Sends the keys
+*)
+
+(*
+  by N1ke!
+*)
+procedure TypeSend(Text: string);overload;
+begin
+  TypeSend(Text, True);
+end;
+
+(*
+  Authors: Raymond
+  Description: Sends the keys
+*)
+
+function LoadTextTPA(Text, Chars: string; var height: integer): TPointArray;
+var
+  w: integer;
+begin
+  result := TPAFromText(text,chars,w,height);
+  dec(height);
+end;
+
+(*
+  Authors: Raymond
+  Description: Finds text off tpa
+*)
+
+function FindTextTPAEx(Color,Tol,xs,ys,xe,ye : integer;var x,y : integer; Txt, Chars : string; Action  :fnct_actionOptions ) : Boolean;
+var
+  TextTPA,SearchTPA, Matches: TPointArray;
+  Box : TBox;
+  xx,yy : integer;
+begin
+  FindColorsTolerance(SearchTPA,Color,xs,ys,xe,ye,tol);
+  if Length(SearchTPA) < 1 then
+    Exit;
+  TextTPA:= LoadTextTPA(Txt,Chars,yy);
+  Result := FindTextTPAinTPA(yy ,TextTPA,SearchTPA,Matches);
+  x := 0; y:=0;
+  if Result = False then
+    Exit;
+  Box := GetTPABounds(TextTPA);
+  SortTPAFrom(Matches, Point(Box.x1,Box.y1));
+  x := matches[0].x;
+  y := matches[0].y;
+  if Action = Nothing then
+    Exit;
+  GetMousePos(xx,yy);
+  if not IntInBox(xx,yy,IntToBox(matches[0].x,matches[0].y,matches[0].x + Box.x2,Matches[0].y + (Box.y2 shr 1))) then
+    MMouse(matches[0].x + Random(box.x2),Matches[0].y + Random(Box.y2 shr 1),0,0);
+  if Action = Move then
+    Exit;
+  GetMousePos(xx,yy);
+  Mouse(xx, yy, Action);
+end;
+
+(*
+  Authors: Finds text (off tpa)
+  Description: Sends the keys
+*)
+
+function FindTextTPA(Color, Tol, xs, ys, xe, ye: integer; Txt, Chars: string; Action: fnct_actionOptions): Boolean;
+var
+  x,y : integer;
+begin
+  Result := FindTextTPAEx(Color,Tol,xs,ys,xe,ye,x,y,Txt,chars,action);
+end;

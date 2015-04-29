@@ -1,0 +1,53 @@
+(*
+  File name: Login.simba
+  Description: Contains procedures/functions to login
+  Authors: Officer Barbrady
+*)
+
+//{$include_once globals.simba}
+
+
+
+(*
+  Author: Officer Barbrady
+  Description: Sets camera angle to the highest
+*)
+
+Procedure setAngleHigh();
+begin
+  Keydown(VK_Up);
+  wait(RandomRange(2000, 3000));
+  KeyUp(VK_Up);
+end;
+
+
+function loggedIn:boolean;
+begin
+  result := (getColor(480, 523) = 16777215);
+end
+
+function TPlayer.login():boolean;
+var
+  count, i, buttonBMP, xx, yy:integer;
+begin
+  if loggedIn() then
+    exit(true)
+  else begin
+    buttonBMP := BitmapFromString(166, 16, 'meJztlr9Lw0AUx/NHuNguioMOOujk6qqDDg66+AeICm6dXUUHBx0EBx00g0MrKKKUOFlBFGwR/IGCIDgITu4+fPA4L3e5y6Xh5bDhQ8n7Xt5xyeeatvL8Venwb1h5+4bP5cfPhfuPpdY7ACc2LHbgxtIUaQXLKH3+5hWYu34BZi4fLJntwI29LJRLou0bi2Y8CII85sSD/e7aaFxksvE0HjWRqfodnRuZuGixA16mq1FO0+Yxc3uxlyWZHTu99RRUoxuiQ5dLQ8pp8Zrk671jtNZw4eiKHVSjzOETv6cAlspc1045iqYumqoQuIn7ZTiM0jJSAFCNMadSlye00xs+uYUFB2uke3C/npahAoDP35hTqcsT2i1bWHCwht7FpH/3zJKBvXN28Pkbcyp1eUK7ZQsL9rIk79Jo386JL+DzN+ZUijn+QBvbdVN5RHwD0FDv9nHPVs0jgtihHIISNEk5nlMeb6RSvEbZUnzArLgH2NeTBfrjTSiHlC06fVJXvJ39rjNS3qwSpY1DS8r+g8bZl+FMClmCYsly91poSWndS8S3PZRgnH1JzqSQ9XcDYNi1epCS0FPEtz37YrKRThltgB9J5Nav');
+    if findBitmapToleranceIn(buttonBMP, xx, yy, 282, 283, 492, 342, 80) then
+    begin
+      mouse(301, 216, 0, 0, mouse_left);
+      typeSend(Players[currentPlayer].user, true);
+      wait(1000);
+      typeSend(Players[currentPlayer].pass, true);
+      wait(1000);
+      if waitFunc(@loggedIn, 200, 5000) then
+      begin
+        wait(2000);
+        freebitmap(buttonBMP);
+        exit(true);
+      end;
+    end else
+      freebitmap(buttonBMP);
+  end;
+end;

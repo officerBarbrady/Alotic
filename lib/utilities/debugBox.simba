@@ -1,0 +1,62 @@
+procedure TDebugCanvas.init(backDropColor:integer);
+begin
+  self.backDrop := backDropColor;
+end;
+
+procedure TDebugCanvas.refresh();
+var
+  i:integer;
+  boxTPA:TPointArray;
+begin
+  if (not enablelog) then
+    exit();
+  self.bmp := createBitmap(765, 145);
+  boxTPA := edgeFromBox(intToBox(1, 1, 763, 144));
+  rectangleBitmapEx(self.bmp, intToBox(0, 0, 764, 144), self.backdrop, 100);
+  drawTPABitmap(self.bmp, boxTPA, 0);
+  for i := 0 to high(self.messages) do
+  begin
+    drawTextbitmap(self.bmp, self.messages[i],'smallchars07', Point(3, 3 + (i*18)), false, self.messageColor[i]);
+    writeln(self.messages[i]);
+  end;
+  DisplayDebugImgWindow(765, 145);
+  DrawBitmapDebugImg(self.bmp);
+  freebitmap(self.bmp);
+end;
+
+procedure TDebugCanvas.clear();
+begin
+  setLength(self.messages, 0);
+  setLength(self.messageColor, 0);
+end;
+
+procedure TDebugCanvas.setBackGround(color:integer);
+begin
+  self.backDrop := color;
+  self.refresh();
+end;
+
+procedure TDebugCanvas.addLine(txt:string;color:integer);
+var
+  i, j:integer;
+  msgs:TStringArray;
+  colors:TIntegerarray;
+begin
+  if (length(self.messages) = 8) then
+  begin
+    msgs := copy(self.messages);
+    colors := copy(self.messageColor);
+    self.messages[7] := txt;
+    self.messageColor[7] := color;
+    for j := 6 downto 0 do
+      self.messages[j] := msgs[j+1];
+    for j := 6 downto 0 do
+      self.messageColor[j] := colors[j+1];
+  end else begin
+    setLength(self.messages, length(self.messages) + 1);
+    setLength(self.messageColor, length(self.messageColor) + 1);
+    self.messages[high(self.messages)] := txt;
+    self.messageColor[high(self.messages)] := color;
+  end;
+  self.refresh();
+end;

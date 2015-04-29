@@ -1,0 +1,72 @@
+{$include_once interface.simba}
+
+(*
+  File name: Bank.simba
+  Description: Bank functions
+  Authors: rj
+*)
+
+(*
+  Author: rj
+  Description: Returns true if interface text contains "ank of"
+*)
+
+var
+  bankScreen:TRSBank;
+
+(*
+  Author: rj
+  Description: Closes bank, just calls closeInterface called close bank
+  for naming purposes (and old timers)
+*)
+
+function TRSBank.withdraw(const row, column:integer;amount:String):boolean;
+begin
+  mouse(45 + (column * 46), 119 + (row * 38), 0, 0, mouse_right);
+  waitOption(amount, 1200);
+end;
+
+procedure TRSBank.storeItemsExcept(const Invslots:TIntegerArray);
+var
+  i, k:integer;
+begin
+  if (not loggedIn()) or (not self.open()) then
+    exit();
+  for i := 0 to high(inventory.slots) do
+    if (not Invslots.isInArray(i)) then
+      if (inventory.slotFull(i)) then
+        begin
+          if (not self.open()) then
+            exit();
+          inventory.interactItem(i, mouse_right);
+          if waitOptionMulti(['tore All','All','e All'], 300) then
+            wait(900 + random(500))
+          else
+            moveMouse(0, 0);
+        end;
+end;
+
+procedure TRSBank.depositItem(const slot:integer);
+var
+  c, t:integer;
+begin
+  if (slot < 0) or (slot > 27) then
+    exit()
+  else begin
+    if (not inventory.slotFull(slot)) then
+      exit();
+    inventory.interactItem(slot, mouse_right);
+    waitOption('All', 600);
+    wait(450);
+  end;
+end;
+
+procedure TRSBank.deposit(const fromSlot, toSlot:integer);
+var
+  i:integer;
+begin
+  if (fromSlot > toSlot) then
+    exit();
+  for i := fromSlot to toSlot do
+    self.depositItem(i);
+end;

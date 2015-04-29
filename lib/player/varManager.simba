@@ -1,0 +1,20 @@
+procedure TVarArray.addVar(varName:string;value:variant);
+begin
+  setLength(self, length(self) + 1);
+  self[length(self) - 1].name := varName;
+  self[length(self) - 1].value := value;
+end;
+
+function TVarArray.getVar(varName:string):TVar;
+var
+  i:integer;
+begin
+  for i := 0 to high(self) do
+    if (self[i].name = varName) then
+      exit(self[i]);
+end;
+
+function TVarArray.getType(varName:string):TVarType; // fix to correct type
+begin
+  result := varType(self.getVar(varName).value);
+end;
